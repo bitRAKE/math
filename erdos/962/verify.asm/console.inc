@@ -15,14 +15,22 @@ macro fastcall?.inline_string var
 end macro
 
 ; Inline macro allows to put string data in any expression (getting the address in return):
+
 inlinemacro GLOB(value)
 	local data
 	data GLOBSTR value,0
 	return equ data
 end inlinemacro
 
-;section '.const' data readable
-;	GLOBSTR.here
+inlinemacro WIDE(value) ; Note: no reuse of wide-strings :/
+	local data
+	virtual GLOBSTR.buffer
+		align 2
+		data du value,0
+	end virtual
+	return equ data
+end inlinemacro
+
 
 section '.text' code readable executable
 
@@ -36,10 +44,17 @@ section '.rdata' data readable
 	align 8
 	data import
 		library\
-		kernel32,'KERNEL32.DLL',\
-		user32,'USER32.DLL'
+			kernel32,'kernel32.dll',\
+			shell32,'shell32.dll',\
+			user32,'user32.dll'
 
 		include 'api/kernel32.inc'
-		include 'api/user32.inc'
+
+		import shell32,\
+			CommandLineToArgvW,'CommandLineToArgvW'
+
+		import user32,\
+			wsprintfA,'wsprintfA'
+
 	end data
 end postpone

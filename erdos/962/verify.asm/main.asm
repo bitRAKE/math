@@ -4,6 +4,7 @@
 ;	+ Single ABI frame, rest are leaf functions.
 ;	+ Input data is less than 1MB.
 ;	+ Data consists of lines starting: {#}, {#}.
+;	- Allow filename on the command line.
 ;	- Of course, it can break easily, but also easy to fix.
 
 include 'console.inc'
@@ -18,10 +19,13 @@ stack STACK_TOTAL, STACK_TOTAL
 start:
 	enter .frame, 0
 	virtual at rbp + 16 ; parent shadow space
-		.hStdOut	dq ?
-		.hFile		dq ?
-		.result		dd ?
-		.bytesRead	dd ?
+		.ArgList	dq ?	; **WSTR
+		.hStdOut	dq ?	; HANDLE
+		.hFile		dq ?	; HANDLE
+		.NumArgs	dd ?	; u32
+		.bytesRead	dd ?	; u32
+
+		label .result:4 at .NumArgs	; BOOL
 
 		assert $-$$ <= 32 ; shadow space limitation
 	end virtual
@@ -31,13 +35,24 @@ start:
 		.file_buffer rb STACK_BUFFER_SIZE
 	end virtual
 
-	mov [.result], 1 ; assume error
-
 	invoke GetStdHandle, STD_OUTPUT_HANDLE
 	mov [.hStdOut], rax
 
-	invoke CreateFileA, 'km_plateaus.csv', GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0
-	lea r8, [GLOB('Could not open file')]
+	invoke GetCommandLineW
+	xchg rcx, rax
+	invoke CommandLineToArgvW, rcx, addr .NumArgs
+	mov [.ArgList], rax
+	lea rcx, [WIDE('km_plateaus.csv')]
+	test rax, rax  ; **WSTR
+	jz .default_filename
+	cmp [.NumArgs], 2
+	jnz .default_filename
+	mov rcx, [rax + 8] ; skip program name
+.default_filename:
+	mov [.result], 1 ; assume error
+
+	invoke CreateFileW, rcx, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0
+	lea r8, [GLOB('could not open file')]
 	cmp rax, INVALID_HANDLE_VALUE
 	jz .err
 	mov [.hFile], rax
@@ -49,11 +64,11 @@ start:
 	jz .err
 
 	mov eax, [.bytesRead]
-	lea r8, [GLOB('File too large for stack buffer')]
+	lea r8, [GLOB('file too large for buffer')]
 	cmp eax, STACK_BUFFER_SIZE
 	jz .err
 
-	lea r8, [GLOB('File empty')]
+	lea r8, [GLOB('file empty')]
 	test eax, eax
 	jz .err
 	mov qword [rsi + rax], 0 ; null-terminate the buffer
@@ -99,12 +114,17 @@ start:
 
 .out:	xchg r8d, eax
 	invoke WriteFile, [.hStdOut], addr .file_buffer, r8, 0, 0
+
+	mov rcx, [.ArgList]
+	jrcxz @F
+	invoke LocalFree, rcx
+@@:
 	invoke ExitProcess, [.result]
 
 .frame := fastcall.frame ; ABI required parameter space
 
 
-_t_fail	GLOBSTR 'FAIL: k=%d, m=%d. Failed at offset %d.',13,10,0
+_t_fail	GLOBSTR 'FAIL: k=%I64d, m=%I64d. Failed at offset %I64d.',13,10,0
 _t_err	GLOBSTR 'Error: %s.',13,10,0
 _t_str	GLOBSTR '%s.',13,10,0
 
