@@ -6,7 +6,7 @@ Source threads/paper (kept as raw URLs inside code blocks per repo conventions):
 ```text
 https://www.erdosproblems.com/forum/thread/962
 https://github.com/QuanyuTang/erdos-problem-962/blob/main/On_Erd%C5%91s_Problem_962.pdf
-````
+```
 
 ---
 
