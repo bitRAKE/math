@@ -130,7 +130,7 @@ def main():
     ap.add_argument(
         "csv",
         nargs="?",
-        default=Path(__file__).with_name("km_plateaus.csv"),
+        default=Path(__file__).resolve().with_name("km_plateaus.csv"),
         type=Path,
         help="Input CSV with plateau points k,m (default: km_plateaus.csv next to this script)",
     )
