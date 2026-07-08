@@ -1,6 +1,7 @@
+import argparse
 import csv
-import sys
 import time
+from pathlib import Path
 
 def verify_sequence(k, m):
     """
@@ -62,7 +63,18 @@ def verify_sequence(k, m):
     return True, None
 
 def main():
-    filename = 'km_plateaus.csv'
+    ap = argparse.ArgumentParser(
+        description="Verify Erdős #962 plateau points against the large-prime-factor condition."
+    )
+    ap.add_argument(
+        "csv",
+        nargs="?",
+        default=Path(__file__).with_name("km_plateaus.csv"),
+        type=Path,
+        help="Input CSV with plateau points k,m (default: km_plateaus.csv next to this script)",
+    )
+    args = ap.parse_args()
+    filename = args.csv
     
     print(f"Checking {filename}...")
     start_time = time.time()
