@@ -1,5 +1,6 @@
-import sys
+import argparse
 import time
+from pathlib import Path
 
 def get_prime_factors_map(n):
     """
@@ -123,9 +124,18 @@ def measure_true_length(k_start, m):
         current_z = next_z
 
 def main():
-    filename = 'km_plateaus.csv'
-    if len(sys.argv) > 1:
-        filename = sys.argv[1]
+    ap = argparse.ArgumentParser(
+        description="Verify continuous plateau coverage for Erdős #962 data."
+    )
+    ap.add_argument(
+        "csv",
+        nargs="?",
+        default=Path(__file__).resolve().with_name("km_plateaus.csv"),
+        type=Path,
+        help="Input CSV with plateau points k,m (default: km_plateaus.csv next to this script)",
+    )
+    args = ap.parse_args()
+    filename = args.csv
 
     print(f"Verifying chain coverage in {filename}...")
     
